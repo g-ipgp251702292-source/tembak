@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misi Pancaindera Selamat - Kata Adjektif Tahun 4</title>
+
+    <!-- MediaPipe Hands & Camera Utils CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --primary: #FF5722;
+            --secondary: #FFC107;
+            --success: #2ECC71;
+            --danger: #E74C3C;
+            --dark: #2C3E50;
+            --light: #F8F9F9;
+            --left-zone: #3498DB;
+            --right-zone: #9B59B6;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Fredoka', 'Comic Sans MS', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: #FFF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Container Utama */
+        #app-container {
+            position: relative;
+            width: 1000px;
+            height: 650px;
+            background: #1A252F;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            border: 4px solid var(--secondary);
+            overflow: hidden;
+        }
+
+        /* Skrin Utama & Skrin Tamat */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            text-align: center;
+            z-index: 10;
+            background: rgba(26, 37, 48, 0.95);
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            text-shadow: 2px 2px var(--danger);
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            max-width: 700px;
+            color: #ECF0F1;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 14px 40px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #D35400;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 #D35400;
+        }
+
+        /* UI Permainan */
+        #game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Bar Stats Header */
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.3rem;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Arena Permainan & Drop Zones */
+        .game-arena {
+            position: relative;
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .drop-zone {
+            width: 220px;
+            height: 380px;
+            border-radius: 20px;
+            border: 4px dashed rgba(255, 255, 255, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .drop-zone.left {
+            background: rgba(52, 152, 219, 0.25);
+            border-color: var(--left-zone);
+        }
+
+        .drop-zone.right {
+            background: rgba(155, 89, 182, 0.25);
+            border-color: var(--right-zone);
+        }
+
+        .drop-zone.hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .zone-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        /* Kad Soalan */
+        #card-container {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            height: 220px;
+            z-index: 3;
+        }
+
+        .question-card {
+            width: 100%;
+            height: 100%;
+            background: #FFF;
+            color: var(--dark);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 4px solid var(--secondary);
+            cursor: grab;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .question-card.dragging {
+            cursor: grabbing;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+            transform: scale(1.08);
+        }
+
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: bold;
+            line-height: 1.4;
+            color: #2C3E50;
+        }
+
+        /* Video Webcam & Canvas Overlay */
+        .webcam-wrapper {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 160px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid var(--secondary);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            z-index: 2;
+            background: #000;
+        }
+
+        #webcam, #output-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror Mode */
+        }
+
+        /* Cursor Jari Telunjuk Interaktif */
+        #finger-cursor {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            border: 3px solid var(--secondary);
+            background: rgba(255, 193, 7, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background 0.2s;
+        }
+
+        #finger-cursor.pinched {
+            background: rgba(46, 204, 113, 0.8);
+            border-color: #FFF;
+            width: 25px;
+            height: 25px;
+        }
+
+        #finger-cursor.holding {
+            border-color: var(--primary);
+            background: rgba(231, 76, 60, 0.6);
+        }
+
+        /* Feedback Popup Visual */
+        #feedback-toast {
+            position: absolute;
+            top: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            display: none;
+            z-index: 5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .toast-correct {
+            background: var(--success);
+            color: white;
+        }
+
+        .toast-wrong {
+            background: var(--danger);
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -10px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Finger Cursor Overlay -->
+        <div id="finger-cursor"></div>
+
+        <!-- Feedback Toast -->
+        <div id="feedback-toast"></div>
+
+        <!-- 1. Menu Utama -->
+        <div id="start-screen" class="screen active">
+            <h1>MISI PANCAINDERA SELAMAT</h1>
+            <p><strong>Bahasa Melayu Tahun 4 (Aspek Keselamatan)</strong></p>
+            <p style="text-align: left; background: rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin: 15px 0;">
+                🎮 <strong>Cara Bermain (Kawalan Isyarat Tangan):</strong><br>
+                1. Muka peranti ke arah peranti dan pastikan kamera mengesan tangan anda.<br>
+                2. Gerakkan **hujung jari telunjuk** untuk mengawal kursor di skrin.<br>
+                3. **Pinch (cubit jari telunjuk & ibu jari)** ATAU **Tahan kursor selama 1 saat** pada kad untuk memegang kad.<br>
+                4. Leret kad soalan ke **Zon Kategori Kiri** atau **Zon Kategori Kanan** yang tepat!
+            </p>
+            <button class="btn" id="start-btn">MULA PERMAINAN</button>
+        </div>
+
+        <!-- 2. Arena Permainan -->
+        <div id="game-ui">
+            <div class="header-bar">
+                <div class="stat-item" id="score-display">SKOR: 0</div>
+                <div class="stat-item" id="timer-display">MASA: 60s</div>
+                <div class="stat-item" id="lives-display">NYAWA: ❤️❤️❤️</div>
+            </div>
+
+            <div class="game-arena">
+                <!-- Drop Zone Left -->
+                <div class="drop-zone left" id="zone-left">
+                    <div class="zone-title" id="title-left">Kategori A</div>
+                    <p id="desc-left" style="font-size: 0.95rem; opacity: 0.8;"></p>
+                </div>
+
+                <!-- Kad Soalan Tengah -->
+                <div id="card-container">
+                    <div class="question-card" id="active-card">
+                        <div style="font-size: 0.85rem; color: #7F8C8D; margin-bottom: 8px; font-weight: bold;" id="card-hint">SITUASI KESELAMATAN</div>
+                        <div class="question-text" id="card-text">Memuatkan Soalan...</div>
+                    </div>
+                </div>
+
+                <!-- Drop Zone Right -->
+                <div class="drop-zone right" id="zone-right">
+                    <div class="zone-title" id="title-right">Kategori B</div>
+                    <p id="desc-right" style="font-size: 0.95rem; opacity: 0.8;"></p>
+                </div>
+            </div>
+
+            <!-- Webcam Preview Feed -->
+            <div class="webcam-wrapper">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="output-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. Skrin Keputusan / Tamat -->
+        <div id="end-screen" class="screen">
+            <h1 id="end-title">TAMAT PERMAINAN</h1>
+            <p id="final-score" style="font-size: 2rem; color: var(--secondary); font-weight: bold; margin: 15px 0;">SKOR AKHIR: 0</p>
+            <p id="end-message" style="margin-bottom: 25px;"></p>
+            <button class="btn" id="restart-btn">MAIN SEMULA</button>
+        </div>
+    </div>
+
+    <script>
+        // Bank Soalan Kata Adjektif Pancaindera (Silibust Tahun 4 - Aspek Keselamatan)
+        const questionBank = [
+            {
+                text: "Lantai di laluan susur gajah sekolah yang basah itu amat ______ dan boleh menyebabkan murid tergelincir.",
+                categoryLeft: "Deria Sentuh (Licin)",
+                categoryRight: "Deria Pandang (Kotor)",
+                correct: "left",
+                explanation: "'Licin' ialah Kata Adjektif Pancaindera Sentuh."
+            },
+            {
+                sentence: "Bunyi siren kereta bomba yang amat ______ memberi amaran kepada pengguna jalan raya supaya memberi laluan.",
+                categoryLeft: "Deria Rasa (Tawar)",
+                categoryRight: "Deria Dengar (Nyaring)",
+                correct: "right",
+                explanation: "'Nyaring' ialah Kata Adjektif Pancaindera Dengar."
+            },
+            {
+                sentence: "Asap tebal daripada kebakaran di premis kilang itu mengeluarkan bau yang ______ dan menjejaskan pernafasan.",
+                categoryLeft: "Deria Bau (Busuk)",
+                categoryRight: "Deria Pandang (Terang)",
+                correct: "left",
+                explanation: "'Busuk' ialah Kata Adjektif Pancaindera Bau."
+            },
+            {
+                sentence: "Lampu isyarat di persimpangan jalan itu menyala dengan ______ pada waktu malam untuk keselamatan pemandu.",
+                categoryLeft: "Deria Dengar (Bising)",
+                categoryRight: "Deria Pandang (Terang)",
+                correct: "right",
+                explanation: "'Terang' ialah Kata Adjektif Pancaindera Pandang."
+            },
+            {
+                sentence: "Cecair bahan kimia pencuci bilik sains itu terasa ______ apabila tersentuh kulit dan perlu dibasuh segera.",
+                categoryLeft: "Deria Sentuh (Kasar/Kesat)",
+                categoryRight: "Deria Rasa (Manis)",
+                correct: "left",
+                explanation: "'Kasar/Kesat' menguji deria sentuh kulit."
+            },
+            {
+                sentence: "Sup panas di kantin itu rasanya agak ______ kerana belum ditambah garam.",
+                categoryLeft: "Deria Bau (Wangi)",
+                categoryRight: "Deria Rasa (Tawar)",
+                correct: "right",
+                explanation: "'Tawar' ialah Kata Adjektif Pancaindera Rasa."
+            },
+            {
+                sentence: "Pengawal keselamatan bertindak tegas apabila mendengar jeritan yang ______ di pintu pagar utama.",
+                categoryLeft: "Deria Dengar (Bingit)",
+                categoryRight: "Deria Sentuh (Lembut)",
+                correct: "left",
+                explanation: "'Bingit' merujuk kepada deria pendengaran."
+            },
+            {
+                sentence: "Kawasan celah bangunan yang ______ itu dipasang lampu limpah untuk mengelakkan berlaku jenayah.",
+                categoryLeft: "Deria Sentuh (Keras)",
+                categoryRight: "Deria Pandang (Gelap)",
+                correct: "right",
+                explanation: "'Gelap' merujuk kepada deria penglihatan/pandang."
+            }
+        ];
+
+        // Pembolehubah Permainan (Game States)
+        let score = 0;
+        let timer = 60;
+        let lives = 3;
+        let timerInterval = null;
+        let currentQuestionIndex = 0;
+        let isGameActive = false;
+
+        // Isyarat Tangan & Dragging States
+        let cursorX = 0, cursorY = 0;
+        let isPinching = false;
+        let isHolding = false;
+        let holdTimer = null;
+        let isDraggingCard = false;
+
+        // Visual Drag Position Offset
+        let cardOffsetX = 0;
+        let cardOffsetY = 0;
+
+        // DOM Elements
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const scoreDisplay = document.getElementById('score-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const livesDisplay = document.getElementById('lives-display');
+
+        const zoneLeft = document.getElementById('zone-left');
+        const zoneRight = document.getElementById('zone-right');
+        const titleLeft = document.getElementById('title-left');
+        const titleRight = document.getElementById('title-right');
+
+        const cardContainer = document.getElementById('card-container');
+        const activeCard = document.getElementById('active-card');
+        const cardText = document.getElementById('card-text');
+
+        const fingerCursor = document.getElementById('finger-cursor');
+        const feedbackToast = document.getElementById('feedback-toast');
+
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('output-canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+
+        // Synth Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(174.61, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        // Inisialisasi Permainan
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            score = 0;
+            timer = 60;
+            lives = 3;
+            currentQuestionIndex = 0;
+            isGameActive = true;
+
+            startScreen.classList.remove('active');
+            endScreen.classList.remove('active');
+
+            updateUI();
+            loadQuestion();
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isGameActive) return;
+                timer--;
+                timerDisplay.textContent = `MASA: ${timer}s`;
+                if (timer <= 0) {
+                    endGame("MASA TAMAT!");
+                }
+            }, 1000);
+        }
+
+        function updateUI() {
+            scoreDisplay.textContent = `SKOR: ${score}`;
+            timerDisplay.textContent = `MASA: ${timer}s`;
+            livesDisplay.textContent = `NYAWA: ${"❤️".repeat(lives)}`;
+        }
+
+        function loadQuestion() {
+            resetCardPosition();
+            if (currentQuestionIndex >= questionBank.length) {
+                // Selesai semua soalan -> pusing semula soalan yang dirawakkan
+                currentQuestionIndex = 0;
+                questionBank.sort(() => Math.random() - 0.5);
+            }
+
+            const q = questionBank[currentQuestionIndex];
+            cardText.textContent = q.text || q.sentence;
+            titleLeft.textContent = q.categoryLeft;
+            titleRight.textContent = q.categoryRight;
+        }
+
+        function resetCardPosition() {
+            isDraggingCard = false;
+            cardContainer.style.left = '50%';
+            cardContainer.style.top = '50%';
+            cardContainer.style.transform = 'translate(-50%, -50%)';
+            activeCard.classList.remove('dragging');
+            zoneLeft.classList.remove('hover');
+            zoneRight.classList.remove('hover');
+        }
+
+        function showFeedback(message, isCorrect) {
+            feedbackToast.textContent = message;
+            feedbackToast.className = `feedback-toast ${isCorrect ? 'toast-correct' : 'toast-wrong'}`;
+            feedbackToast.style.display = 'block';
+
+            setTimeout(() => {
+                feedbackToast.style.display = 'none';
+            }, 1500);
+        }
+
+        function checkAnswer(chosenZone) {
+            const q = questionBank[currentQuestionIndex];
+            const isCorrect = (chosenZone === q.correct);
+
+            if (isCorrect) {
+                score += 10;
+                playSound('correct');
+                showFeedback("✅ BETUL! SYABAS!", true);
+            } else {
+                lives--;
+                playSound('wrong');
+                showFeedback(`❌ SALAH! ${q.explanation}`, false);
+            }
+
+            updateUI();
+
+            if (lives <= 0) {
+                endGame("NYAWA HABIS!");
+            } else {
+                currentQuestionIndex++;
+                setTimeout(() => {
+                    loadQuestion();
+                }, 1000);
+            }
+        }
+
+        function endGame(reason) {
+            isGameActive = false;
+            clearInterval(timerInterval);
+
+            document.getElementById('end-title').textContent = reason;
+            document.getElementById('final-score').textContent = `SKOR AKHIR: ${score}`;
+
+            let msg = "Teruskan latihan untuk menguasai Kata Adjektif Pancaindera!";
+            if (score >= 50) msg = "Hebat sekali! Anda sangat peka dengan aspek keselamatan dan bahasa Melayu! 🌟";
+            else if (score >= 30) msg = "Bagus! Usaha yang amat memuaskan! 👍";
+
+            document.getElementById('end-message').textContent = msg;
+            endScreen.classList.add('active');
+        }
+
+        // --- MEDIAPIPE HANDS LOGIC ---
+        function onHandResults(results) {
+            // Clear & Resize Canvas
+            canvasElement.width = videoElement.videoWidth || 160;
+            canvasElement.height = videoElement.videoHeight || 120;
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+
+                // Lukis skeleton tangan pada canvas webcam overlay
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
+                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1, radius: 2});
+
+                // Hujung Jari Telunjuk (Index Finger Tip = Landmark 8)
+                const indexTip = landmarks[8];
+                // Hujung Ibu Jari (Thumb Tip = Landmark 4)
+                const thumbTip = landmarks[4];
+
+                // Tukar koordinat ke skrin permainan (Inverted X kerana mirror mode)
+                const screenWidth = 1000;
+                const screenHeight = 650;
+
+                cursorX = (1 - indexTip.x) * screenWidth;
+                cursorY = indexTip.y * screenHeight;
+
+                // Update Posisi Finger Cursor Overlay
+                fingerCursor.style.left = `${cursorX}px`;
+                fingerCursor.style.top = `${cursorY}px`;
+
+                // Kira jarak Pinch (Euclidean Distance antara Jari Telunjuk & Ibu Jari)
+                const distance = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                isPinching = distance < 0.08; // Threshold pinch
+
+                // Kemaskini Visual Cursor State
+                fingerCursor.className = isPinching ? 'pinched' : (isHolding ? 'holding' : '');
+
+                // Kendalikan Interaction Logic jika permainan aktif
+                if (isGameActive) {
+                    processCardInteraction();
+                }
+            } else {
+                // Jari tidak dikesan
+                fingerCursor.style.display = 'none';
+            }
+            canvasCtx.restore();
+        }
+
+        // Pengurusan Drag & Drop Kad menggunakan Isyarat Jari
+        function processCardInteraction() {
+            fingerCursor.style.display = 'block';
+
+            const cardRect = cardContainer.getBoundingClientRect();
+            const containerRect = document.getElementById('app-container').getBoundingClientRect();
+
+            // Dapatkan kedudukan relatif kursor dalam app-container
+            const relCursorX = cursorX;
+            const relCursorY = cursorY;
+
+            // Semak sama ada kursor berada di atas kad soalan
+            const isOverCard = (
+                relCursorX >= (cardRect.left - containerRect.left) &&
+                relCursorX <= (cardRect.right - containerRect.left) &&
+                relCursorY >= (cardRect.top - containerRect.top) &&
+                relCursorY <= (cardRect.bottom - containerRect.top)
+            );
+
+            // Logik Dwell-time (Hold selama 1 saat)
+            if (isOverCard && !isDraggingCard) {
+                if (!holdTimer && !isHolding) {
+                    holdTimer = setTimeout(() => {
+                        isHolding = true;
+                        isDraggingCard = true;
+                    }, 800); // 0.8s hold
+                }
+            } else {
+                if (!isDraggingCard) {
+                    clearTimeout(holdTimer);
+                    holdTimer = null;
+                    isHolding = false;
+                }
+            }
+
+            // Mula Menarik Kad (Sama ada Pinch ATAU Hold)
+            if ((isPinching || isHolding) && (isOverCard || isDraggingCard)) {
+                isDraggingCard = true;
+                activeCard.classList.add('dragging');
+
+                // Gerakkan kad mengikut kursor
+                cardContainer.style.left = `${relCursorX}px`;
+                cardContainer.style.top = `${relCursorY}px`;
+                cardContainer.style.transform = 'translate(-50%, -50%)';
+
+                // Semak koordinat dengan Drop Zone Kiri dan Kanan
+                const zoneLeftRect = zoneLeft.getBoundingClientRect();
+                const zoneRightRect = zoneRight.getBoundingClientRect();
+
+                const isOverLeft = (
+                    relCursorX >= (zoneLeftRect.left - containerRect.left) &&
+                    relCursorX <= (zoneLeftRect.right - containerRect.left)
+                );
+
+                const isOverRight = (
+                    relCursorX >= (zoneRightRect.left - containerRect.left) &&
+                    relCursorX <= (zoneRightRect.right - containerRect.left)
+                );
+
+                zoneLeft.classList.toggle('hover', isOverLeft);
+                zoneRight.classList.toggle('hover', isOverRight);
+
+            } else if (!isPinching && !isHolding && isDraggingCard) {
+                // Dilepaskan (Drop)
+                const zoneLeftRect = zoneLeft.getBoundingClientRect();
+                const zoneRightRect = zoneRight.getBoundingClientRect();
+
+                const isOverLeft = (
+                    relCursorX >= (zoneLeftRect.left - containerRect.left) &&
+                    relCursorX <= (zoneLeftRect.right - containerRect.left)
+                );
+
+                const isOverRight = (
+                    relCursorX >= (zoneRightRect.left - containerRect.left) &&
+                    relCursorX <= (zoneRightRect.right - containerRect.left)
+                );
+
+                if (isOverLeft) {
+                    checkAnswer('left');
+                } else if (isOverRight) {
+                    checkAnswer('right');
+                } else {
+                    // Reset balik ke tengah jika dilepas di tempat kosong
+                    resetCardPosition();
+                }
+
+                isDraggingCard = false;
+                isHolding = false;
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
+        }
+
+        // Inisialisasi Google MediaPipe Hands
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
+        });
+
+        hands.onResults(onHandResults);
+
+        // Memulakan Akses Webcam Peranti
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 320,
+            height: 240
+        });
+
+        camera.start().catch(err => {
+            alert("Sila benarkan akses kamera untuk bermain menggunakan isyarat tangan!");
+            console.error("Camera Access Error: ", err);
+        });
+    </script>
+</body>
+</html>
